@@ -40,6 +40,9 @@ A Pente-style strategy game for **Mac**, **Windows** and **iPhone**, built with 
 
 ## Downloads
 
-Every push to `main` builds the Mac and Windows apps on GitHub Actions. Open the latest **CI** run under the repo's **Actions** tab and download them from its **Artifacts** section.
+Every push to `main` builds the apps and publishes them to the **[Latest build](https://github.com/nusbaumm01/5stones/releases/tag/latest)** release:
 
-The iPhone build is checked on every push. Installing it on a real iPhone requires signing with an Apple Developer account.
+- **Mac:** download `5Stones-macos.zip`, unzip it and move `5Stones.app` to Applications. The app isn't signed yet, so the first time you open it, right-click it and choose **Open**, then confirm.
+- **Windows:** download `5Stones-windows.zip`, unzip the whole folder and run `five_stones.exe`. If SmartScreen warns you, click **More info**, then **Run anyway**.
+- **iPhone:** the build is checked on every push. Installing it on a real iPhone requires signing with an Apple Developer account.
+

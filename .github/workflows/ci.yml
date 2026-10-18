@@ -12,6 +12,8 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.47.7"
+  # Pushes to main publish the apps to the "latest" GitHub Release.
+  PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
 jobs:
   test:
@@ -29,10 +31,34 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
+  release:
+    name: Prepare release
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create or move the "latest" release
+        run: |
+          git tag -f latest
+          git push -f origin latest
+          gh release view latest >/dev/null 2>&1 || gh release create latest \
+            --prerelease --title "Latest build" \
+            --notes "Built automatically from the newest commit on main. Download 5Stones for Mac or Windows below."
+
   build-macos:
     name: Build macOS
-    needs: test
+    needs: [test, release]
+    if: ${{ !cancelled() && needs.test.result == 'success' }}
     runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -43,15 +69,19 @@ jobs:
       - run: flutter build macos --release
       - name: Zip app
         run: cd build/macos/Build/Products/Release && ditto -c -k --keepParent 5Stones.app 5Stones-macos.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: 5Stones-macos
-          path: build/macos/Build/Products/Release/5Stones-macos.zip
+      - name: Publish to release
+        if: env.PUBLISH == 'true'
+        run: gh release upload latest build/macos/Build/Products/Release/5Stones-macos.zip --clobber
 
   build-windows:
     name: Build Windows
-    needs: test
+    needs: [test, release]
+    if: ${{ !cancelled() && needs.test.result == 'success' }}
     runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -60,10 +90,13 @@ jobs:
           channel: stable
           cache: true
       - run: flutter build windows --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: 5Stones-windows
-          path: build/windows/x64/runner/Release/
+      - name: Zip app
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath 5Stones-windows.zip
+      - name: Publish to release
+        if: env.PUBLISH == 'true'
+        shell: bash
+        run: gh release upload latest 5Stones-windows.zip --clobber
 
   build-ios:
     name: Build iPhone (unsigned)
