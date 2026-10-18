@@ -42,7 +42,7 @@ A Pente-style strategy game for **Mac**, **Windows** and **iPhone**, built with 
 
 Every push to `main` builds the apps and publishes them to the **[Latest build](https://github.com/nusbaumm01/5stones/releases/tag/latest)** release:
 
-- **Mac:** download `5Stones-macos.zip`, unzip it and move `5Stones.app` to Applications. The app isn't signed yet, so the first time you open it macOS says it "could not verify" 5Stones. Click **Done**, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to the 5Stones message, and confirm. You only need to do this once. (Or run `xattr -dr com.apple.quarantine /Applications/5Stones.app` in Terminal.)
+- **Mac:** download `5Stones.dmg`, open it and drag **5Stones** onto the **Applications** folder. The app isn't signed yet, so the first time you open it macOS says it "could not verify" 5Stones. Click **Done**, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to the 5Stones message, and confirm. You only need to do this once. (Or run `xattr -dr com.apple.quarantine /Applications/5Stones.app` in Terminal.) A plain `5Stones-macos.zip` is also available.
 - **Windows:** download `5Stones-windows.zip`, unzip the whole folder and run `five_stones.exe`. If SmartScreen warns you, click **More info**, then **Run anyway**.
 - **iPhone:** the build is checked on every push. Installing it on a real iPhone requires signing with an Apple Developer account.
 
