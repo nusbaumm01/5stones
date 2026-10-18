@@ -145,4 +145,29 @@ void main() {
     expect(moves.length, 5);
     expect(moves.last.captured.length, 2);
   });
+
+  test('computer still moves if its search fails', () async {
+    const settings = GameSettings(vsComputer: true);
+    final c = GameController(
+      settings,
+      aiMove: (g, d) async => throw StateError('boom'),
+    );
+    c.tap(const Point(9, 9));
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    expect(c.game.moveCount, 2);
+    expect(c.computerThinking, isFalse);
+    expect(c.canHumanMove, isTrue);
+  });
+
+  test('computer still moves if it suggests an illegal point', () async {
+    const settings = GameSettings(vsComputer: true);
+    final c = GameController(
+      settings,
+      aiMove: (g, d) async => const Point(9, 9), // already taken
+    );
+    c.tap(const Point(9, 9));
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    expect(c.game.moveCount, 2);
+    expect(c.canHumanMove, isTrue);
+  });
 }

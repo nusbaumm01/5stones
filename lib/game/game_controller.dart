@@ -107,15 +107,31 @@ class GameController extends ChangeNotifier {
     _changed();
     // A short pause so the computer's reply doesn't feel instant.
     final pause = Future<void>.delayed(const Duration(milliseconds: 350));
-    final move = await _aiMove(_game, settings.difficulty);
+    Point? move;
+    try {
+      move = await _aiMove(_game, settings.difficulty);
+    } catch (e) {
+      debugPrint('Computer move failed: $e');
+    }
     await pause;
     if (_disposed || gen != _generation) return;
     _thinking = false;
-    if (_game.isLegal(move)) {
+    // Never leave the game stuck on the computer's turn.
+    if (move == null || !_game.isLegal(move)) move = _fallbackMove();
+    if (move != null) {
       _game.play(move);
       onMove?.call(_game.lastMove!, _game);
     }
     _changed();
+  }
+
+  Point? _fallbackMove() {
+    try {
+      return PenteAi(Difficulty.easy).chooseMove(_game);
+    } catch (_) {
+      final moves = _game.legalMoves();
+      return moves.isEmpty ? null : moves.first;
+    }
   }
 
   void _changed() {
