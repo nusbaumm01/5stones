@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../game/pente.dart';
+import '../sound.dart';
 import '../widgets/board_view.dart';
 import 'home_screen.dart' show showRules;
 
@@ -19,7 +20,17 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late final GameController _c =
-      widget.controller ?? GameController(widget.settings);
+      widget.controller ?? GameController(widget.settings, onMove: _playSound);
+  final SoundService _sound = SoundService.instance;
+
+  static void _playSound(Move move, PenteGame game) {
+    final sfx = game.winner != null
+        ? Sfx.win
+        : move.captured.isNotEmpty
+        ? Sfx.capture
+        : Sfx.place;
+    SoundService.instance.play(sfx);
+  }
 
   @override
   void dispose() {
@@ -63,13 +74,19 @@ class _GameScreenState extends State<GameScreen> {
         ? 'Versus computer · ${s.difficulty.label}'
         : 'Two players';
     return ListenableBuilder(
-      listenable: _c,
+      listenable: Listenable.merge([_c, _sound]),
       builder: (context, _) {
         final g = _c.game;
         return Scaffold(
           appBar: AppBar(
             title: Text(title),
             actions: [
+              IconButton(
+                key: const Key('sound'),
+                tooltip: _sound.enabled ? 'Mute sound' : 'Turn sound on',
+                onPressed: () => _sound.setEnabled(!_sound.enabled),
+                icon: Icon(_sound.enabled ? Icons.volume_up : Icons.volume_off),
+              ),
               IconButton(
                 tooltip: 'How to play',
                 onPressed: () => showRules(context),

@@ -29,12 +29,16 @@ class GameController extends ChangeNotifier {
   GameController(
     this.settings, {
     Future<Point> Function(PenteGame, Difficulty)? aiMove,
+    this.onMove,
   }) : _aiMove = aiMove ?? _defaultAiMove {
     _game = PenteGame(tournamentRule: settings.tournamentRule);
     _maybeComputerTurn();
   }
 
   final GameSettings settings;
+
+  /// Called after every stone is placed, by a person or the computer.
+  final void Function(Move move, PenteGame game)? onMove;
   final Future<Point> Function(PenteGame, Difficulty) _aiMove;
   late PenteGame _game;
 
@@ -69,6 +73,7 @@ class GameController extends ChangeNotifier {
   bool tap(Point p) {
     if (!canHumanMove || !_game.isLegal(p)) return false;
     _game.play(p);
+    onMove?.call(_game.lastMove!, _game);
     _changed();
     _maybeComputerTurn();
     return true;
@@ -106,7 +111,10 @@ class GameController extends ChangeNotifier {
     await pause;
     if (_disposed || gen != _generation) return;
     _thinking = false;
-    if (_game.isLegal(move)) _game.play(move);
+    if (_game.isLegal(move)) {
+      _game.play(move);
+      onMove?.call(_game.lastMove!, _game);
+    }
     _changed();
   }
 

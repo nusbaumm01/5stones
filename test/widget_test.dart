@@ -126,4 +126,23 @@ void main() {
     expect(find.byType(BoardView), findsOneWidget);
     expect(find.text('White to move'), findsOneWidget);
   });
+
+  test('onMove reports every stone, with captures', () {
+    final moves = <Move>[];
+    final c = GameController(
+      const GameSettings(),
+      onMove: (m, g) => moves.add(m),
+    );
+    for (final p in const [
+      Point(9, 9),
+      Point(9, 10),
+      Point(0, 0),
+      Point(9, 11),
+      Point(9, 12),
+    ]) {
+      c.tap(p);
+    }
+    expect(moves.length, 5);
+    expect(moves.last.captured.length, 2);
+  });
 }

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
+import 'sound.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SoundService.instance.load();
   runApp(const FiveStonesApp());
 }
 
