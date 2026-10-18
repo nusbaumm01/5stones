@@ -67,11 +67,22 @@ jobs:
           channel: stable
           cache: true
       - run: flutter build macos --release
-      - name: Zip app
-        run: cd build/macos/Build/Products/Release && ditto -c -k --keepParent 5Stones.app 5Stones-macos.zip
+      - name: Package app (.dmg installer and .zip)
+        run: |
+          cd build/macos/Build/Products/Release
+          ditto -c -k --keepParent 5Stones.app 5Stones-macos.zip
+          # Disk image with the app next to an Applications shortcut,
+          # so installing is drag and drop.
+          mkdir -p dmg
+          cp -R 5Stones.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname 5Stones -srcfolder dmg -ov -format UDZO 5Stones.dmg
+          hdiutil verify 5Stones.dmg
       - name: Publish to release
         if: env.PUBLISH == 'true'
-        run: gh release upload latest build/macos/Build/Products/Release/5Stones-macos.zip --clobber
+        run: |
+          cd build/macos/Build/Products/Release
+          gh release upload latest 5Stones.dmg 5Stones-macos.zip --clobber
 
   build-windows:
     name: Build Windows
