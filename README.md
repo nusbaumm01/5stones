@@ -44,5 +44,15 @@ Every push to `main` builds the apps and publishes them to the **[Latest build](
 
 - **Mac:** download `5Stones.dmg`, open it and drag **5Stones** onto the **Applications** folder. The app isn't signed yet, so the first time you open it macOS says it "could not verify" 5Stones. Click **Done**, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to the 5Stones message, and confirm. You only need to do this once. (Or run `xattr -dr com.apple.quarantine /Applications/5Stones.app` in Terminal.) A plain `5Stones-macos.zip` is also available.
 - **Windows:** download `5Stones-windows.zip`, unzip the whole folder and run `five_stones.exe`. If SmartScreen warns you, click **More info**, then **Run anyway**.
-- **iPhone:** the build is checked on every push. Installing it on a real iPhone requires signing with an Apple Developer account.
+- **iPhone and iPad:** every push to `main` uploads a build to TestFlight (once the Apple secrets below are set). Install the **TestFlight** app on your device and open 5Stones from there.
+
+### TestFlight setup (one time)
+
+Add these repository secrets under **Settings → Secrets and variables → Actions**:
+
+- `APPLE_TEAM_ID`: your 10-character Team ID (developer.apple.com → Account → Membership details).
+- `APP_STORE_CONNECT_KEY_ID` and `APP_STORE_CONNECT_ISSUER_ID`: from an App Store Connect API key with the **Admin** role (App Store Connect → Users and Access → Integrations → App Store Connect API).
+- `APP_STORE_CONNECT_KEY`: the full text of that key's downloaded `.p8` file.
+
+The app record must exist in App Store Connect with bundle ID `com.nusbaumm01.fiveStones`.
 
