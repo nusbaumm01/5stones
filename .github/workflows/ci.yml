@@ -156,7 +156,25 @@ jobs:
         if: steps.secrets.outputs.ready == 'true'
         run: |
           KEY_PATH="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
-          printf '%s' "$ASC_KEY" > "$KEY_PATH"
+          # Rebuild the .p8 so pasting quirks don't matter: lost line breaks,
+          # Windows line endings, literal "\n", quotes, or a base64'd file.
+          RAW=$(printf '%s' "$ASC_KEY" | tr -d '\r')
+          RAW=${RAW//\\n/$'\n'}
+          if ! grep -q BEGIN <<<"$RAW"; then
+            DECODED=$(printf '%s' "$RAW" | tr -d ' \n' | base64 --decode 2>/dev/null || true)
+            if grep -q BEGIN <<<"$DECODED"; then RAW=$DECODED; fi
+          fi
+          BODY=$(printf '%s\n' "$RAW" | sed -e 's/-----BEGIN[^-]*-----//g' -e 's/-----END[^-]*-----//g' | tr -d ' \t\n"')
+          {
+            echo "-----BEGIN PRIVATE KEY-----"
+            printf '%s\n' "$BODY" | fold -w 64
+            echo "-----END PRIVATE KEY-----"
+          } > "$KEY_PATH"
+          if ! openssl pkey -in "$KEY_PATH" -noout 2>/dev/null; then
+            echo "::error::APP_STORE_CONNECT_KEY is not a valid .p8 key (${#BODY} key characters found). Paste the whole .p8 file text again."
+            rm -f "$KEY_PATH"
+            exit 1
+          fi
           AUTH=(-allowProvisioningUpdates
                 -authenticationKeyPath "$KEY_PATH"
                 -authenticationKeyID "$ASC_KEY_ID"
