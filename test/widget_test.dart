@@ -10,7 +10,7 @@ import 'package:five_stones/widgets/board_view.dart';
 
 /// Taps the board at intersection [p] (19x19 board).
 Future<void> tapPoint(WidgetTester tester, Point p) async {
-  final box = tester.getRect(find.byType(BoardView));
+  final box = tester.getRect(find.byKey(BoardView.boardKey));
   final cell = box.width / 19;
   await tester.tapAt(
     box.topLeft + Offset((p.col + 0.5) * cell, (p.row + 0.5) * cell),
@@ -125,6 +125,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BoardView), findsOneWidget);
     expect(find.text('White to move'), findsOneWidget);
+  });
+
+  testWidgets('zoomed in, taps still land on the right intersection', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final c = GameController(const GameSettings());
+    await tester.pumpWidget(
+      wrap(GameScreen(settings: const GameSettings(), controller: c)),
+    );
+    expect(find.text('Pinch, scroll or use + to zoom'), findsOneWidget);
+
+    // Zoom in twice around the board's middle: 1.5 x 1.5 = 2.25x.
+    await tester.tap(find.byKey(const Key('zoom-in')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('zoom-in')));
+    await tester.pumpAndSettle();
+    expect(find.text('Drag to move around'), findsOneWidget);
+
+    const scale = 2.25;
+    final box = tester.getRect(find.byKey(BoardView.boardKey));
+    final cell = box.width / 19;
+    Future<void> tapZoomed(Point p) async {
+      final board = Offset((p.col + 0.5) * cell, (p.row + 0.5) * cell);
+      final mid = box.width / 2;
+      final onScreen = Offset(
+        mid + (board.dx - mid) * scale,
+        mid + (board.dy - mid) * scale,
+      );
+      await tester.tapAt(box.topLeft + onScreen);
+      await tester.pump();
+    }
+
+    await tapZoomed(const Point(9, 9));
+    await tapZoomed(const Point(10, 11));
+    await tapZoomed(const Point(7, 6));
+    expect(c.game.at(const Point(9, 9)), Player.one);
+    expect(c.game.at(const Point(10, 11)), Player.two);
+    expect(c.game.at(const Point(7, 6)), Player.one);
+
+    // Without zoom, that last screen spot would have been a different point.
+    expect(c.game.moveCount, 3);
+
+    // Dragging pans the board and does not place a stone.
+    await tester.drag(find.byKey(BoardView.boardKey), const Offset(120, 80));
+    await tester.pumpAndSettle();
+    expect(c.game.moveCount, 3);
+
+    // Reset shows the whole board again, and plain taps work as before.
+    await tester.tap(find.byKey(const Key('zoom-reset')));
+    await tester.pumpAndSettle();
+    expect(find.text('Pinch, scroll or use + to zoom'), findsOneWidget);
+    await tapPoint(tester, const Point(12, 12));
+    expect(c.game.at(const Point(12, 12)), Player.two);
   });
 
   test('onMove reports every stone, with captures', () {
