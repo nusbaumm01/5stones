@@ -5,6 +5,7 @@ A Pente-style strategy game for **Mac**, **Windows** and **iPhone**, built with 
 ## Features
 
 - Two players on one device, or play the computer at **Easy**, **Medium** or **Hard**.
+- **Play online** against a friend on another device: create a game, send the 6-character code, and they join. Mac, Windows, iPhone and iPad can all play each other. Needs a one-time Firebase setup: see [docs/ONLINE_SETUP.md](docs/ONLINE_SETUP.md).
 - Choose whether you or the computer goes first.
 - Capture counters, last-move marker, winning-line highlight and undo.
 - Optional tournament rule.
@@ -36,7 +37,9 @@ A Pente-style strategy game for **Mac**, **Windows** and **iPhone**, built with 
 - `lib/game/ai.dart`: the computer player (look-ahead search with a scoring function).
 - `lib/game/game_controller.dart`: runs a game and the computer's turns.
 - `lib/widgets/board_view.dart`: draws the board and handles taps and clicks.
-- `lib/screens/`: the home and game screens.
+- `lib/screens/`: the home, game and online screens.
+- `lib/online/`: online play over Firebase (sign-in, game codes, sending and receiving moves).
+- `firebase/database.rules.json`: the server rules that keep online games fair.
 
 ## Downloads
 

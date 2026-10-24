@@ -120,7 +120,7 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                 );
-                final panel = _InfoPanel(
+                final panel = InfoPanel(
                   status: _status(g),
                   game: g,
                   nameOf: _name,
@@ -150,14 +150,18 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-class _InfoPanel extends StatelessWidget {
-  const _InfoPanel({
+/// Status line, players and captures shown next to the board.
+class InfoPanel extends StatelessWidget {
+  const InfoPanel({
+    super.key,
     required this.status,
     required this.game,
     required this.nameOf,
     required this.thinking,
     required this.wide,
     this.onNewGame,
+    this.newGameLabel = 'Play again',
+    this.extra,
   });
 
   final String status;
@@ -166,6 +170,10 @@ class _InfoPanel extends StatelessWidget {
   final bool thinking;
   final bool wide;
   final VoidCallback? onNewGame;
+  final String newGameLabel;
+
+  /// Shown under the players, for example a rematch note.
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -220,11 +228,13 @@ class _InfoPanel extends StatelessWidget {
             const SizedBox(height: 8),
             Center(
               child: FilledButton(
+                key: const Key('play-again'),
                 onPressed: onNewGame,
-                child: const Text('Play again'),
+                child: Text(newGameLabel),
               ),
             ),
           ],
+          if (extra != null) ...[const SizedBox(height: 8), extra!],
         ],
       ),
     );

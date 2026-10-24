@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../game/ai.dart';
 import '../game/game_controller.dart';
+import '../online/online_game.dart';
 import 'game_screen.dart';
+import 'online_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +27,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => GameScreen(settings: settings)),
+    );
+  }
+
+  void _playOnline() {
+    final service = OnlineService.instance;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => service == null
+            ? const OnlineUnavailableScreen()
+            : OnlineLobbyScreen(
+                service: service,
+                tournamentRule: _tournamentRule,
+              ),
+      ),
     );
   }
 
@@ -60,6 +76,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: () => _start(false),
                     icon: const Icon(Icons.people),
                     label: const Text('Two players'),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    key: const Key('play-online'),
+                    onPressed: _playOnline,
+                    icon: const Icon(Icons.public),
+                    label: const Text('Play online'),
                   ),
                   const SizedBox(height: 24),
                   Card(
