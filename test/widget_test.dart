@@ -184,6 +184,44 @@ void main() {
     expect(c.game.at(const Point(12, 12)), Player.two);
   });
 
+  testWidgets('resizing while zoomed keeps the board filling the view', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final c = GameController(const GameSettings());
+    await tester.pumpWidget(
+      wrap(GameScreen(settings: const GameSettings(), controller: c)),
+    );
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('zoom-in')));
+      await tester.pumpAndSettle();
+    }
+    // Pan all the way to the bottom-right corner.
+    await tester.drag(
+      find.byKey(BoardView.boardKey),
+      const Offset(-2000, -2000),
+    );
+    await tester.pumpAndSettle();
+
+    tester.view.physicalSize = const Size(600, 1000);
+    await tester.pumpAndSettle();
+
+    final side = tester.getSize(find.byKey(BoardView.boardKey)).width;
+    final m = tester
+        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+        .transformationController!
+        .value;
+    final scale = m.getMaxScaleOnAxis();
+    final t = m.getTranslation();
+    // Still zoomed, and not panned past the board's edge.
+    expect(scale, closeTo(BoardView.maxZoom, 0.01));
+    expect(t.x, greaterThanOrEqualTo(side - side * scale - 0.01));
+    expect(t.y, greaterThanOrEqualTo(side - side * scale - 0.01));
+  });
+
   test('onMove reports every stone, with captures', () {
     final moves = <Move>[];
     final c = GameController(

@@ -84,6 +84,25 @@ class _BoardViewState extends State<BoardView>
 
   void _reset() => _animateTo(Matrix4.identity());
 
+  /// The zoom offset is in pixels, so when the board changes size (window
+  /// resize, iPad rotation) scale it to keep the same part of the board in
+  /// view instead of showing empty space past the edge.
+  void _onResize(double oldSide, double newSide) {
+    if (oldSide <= 0 || _scale <= BoardView.minZoom) return;
+    _anim.stop();
+    final ratio = newSide / oldSide;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final t = _zoom.value.getTranslation();
+      final s = _scale;
+      _zoom.value = _clamp(
+        Matrix4.identity()
+          ..translateByDouble(t.x * ratio, t.y * ratio, 0, 1)
+          ..scaleByDouble(s, s, 1, 1),
+      );
+    });
+  }
+
   /// Keep the board filling the view (no empty space past its edges).
   Matrix4 _clamp(Matrix4 m) {
     final s = m.getMaxScaleOnAxis();
@@ -119,6 +138,7 @@ class _BoardViewState extends State<BoardView>
           constraints.maxWidth,
           constraints.maxHeight - _controlsHeight,
         ].reduce((a, b) => a < b ? a : b).clamp(0.0, double.infinity);
+        if (side != _side) _onResize(_side, side);
         _side = side;
         final scale = _scale;
         final zoomed = scale > BoardView.minZoom + 0.01;
