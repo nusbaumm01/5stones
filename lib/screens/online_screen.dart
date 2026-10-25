@@ -270,6 +270,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     return 'Your move';
   }
 
+  Future<void> _requestRematch() async {
+    try {
+      await _c.requestRematch();
+    } catch (e) {
+      debugPrint('Rematch request failed: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't reach the server. Try again.")),
+      );
+    }
+  }
+
   void _copyCode() {
     Clipboard.setData(ClipboardData(text: widget.code));
     ScaffoldMessenger.of(context)
@@ -401,7 +413,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           textAlign: TextAlign.center,
         );
       } else {
-        onRematch = _c.requestRematch;
+        onRematch = _requestRematch;
         if (_c.opponentAskedRematch) {
           rematchLabel = 'Accept rematch';
           extra = const Text(

@@ -203,21 +203,33 @@ class FirebaseDatabaseRest {
     );
   }
 
+  /// How long a single read or write may take before giving up.
+  static const requestTimeout = Duration(seconds: 20);
+
+  /// Firebase sends a keep-alive about every 30 seconds on a live
+  /// connection. Hearing nothing for this long means the connection died
+  /// quietly (for example the Wi-Fi changed), so reconnect.
+  static const silenceTimeout = Duration(seconds: 75);
+
   Future<Object?> get(String path) async {
-    final res = await _http.get(await _uri(path));
+    final res = await _http.get(await _uri(path)).timeout(requestTimeout);
     return _decode(res);
   }
 
   /// Replaces the data at [path].
   Future<void> put(String path, Object? value) async {
-    final res = await _http.put(await _uri(path), body: jsonEncode(value));
+    final res = await _http
+        .put(await _uri(path), body: jsonEncode(value))
+        .timeout(requestTimeout);
     _decode(res);
   }
 
   /// Writes several children of [path] at once. Either all of them are
   /// saved or none are.
   Future<void> patch(String path, Map<String, Object?> values) async {
-    final res = await _http.patch(await _uri(path), body: jsonEncode(values));
+    final res = await _http
+        .patch(await _uri(path), body: jsonEncode(values))
+        .timeout(requestTimeout);
     _decode(res);
   }
 
@@ -248,13 +260,15 @@ class FirebaseDatabaseRest {
           client = http.Client();
           final req = http.Request('GET', await _uri(path))
             ..headers['Accept'] = 'text/event-stream';
-          final res = await client!.send(req);
+          final res = await client!.send(req).timeout(requestTimeout);
           if (res.statusCode != 200) {
             final body = await res.stream.bytesToString();
             throw FirebaseException(res.statusCode, body);
           }
           final tree = JsonTree();
-          await for (final event in parseServerSentEvents(res.stream)) {
+          final events = parseServerSentEvents(res.stream)
+              .timeout(silenceTimeout);
+          await for (final event in events) {
             if (cancelled) break;
             delay = const Duration(seconds: 1);
             switch (event.name) {

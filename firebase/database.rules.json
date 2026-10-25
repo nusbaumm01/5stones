@@ -5,7 +5,7 @@
     "games": {
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null && (!data.exists() || data.child('host').val() === auth.uid)",
+        ".write": "auth != null && ((!data.exists() && !newData.child('guest').exists() && !newData.child('moves').exists() && !newData.child('rematch').exists() && !newData.child('left').exists()) || (data.exists() && auth.uid === data.child('host').val() && data.child('guest').exists() && data.child('rematch').child(data.child('host').val()).val() === data.child('round').val() && data.child('rematch').child(data.child('guest').val()).val() === data.child('round').val() && newData.child('round').val() === data.child('round').val() + 1 && newData.child('hostColor').val() !== data.child('hostColor').val() && newData.child('guest').val() === data.child('guest').val() && newData.child('tournament').val() === data.child('tournament').val() && newData.child('moveCount').val() === 0 && !newData.child('moves').exists() && !newData.child('rematch').exists()))",
         ".validate": "$code.matches(/^[A-Z2-9]{6}$/) && newData.hasChildren(['host', 'hostColor', 'moveCount', 'round', 'tournament', 'createdAt'])",
         "host": {
           ".validate": "data.exists() ? newData.val() === data.val() : newData.val() === auth.uid"
@@ -21,13 +21,13 @@
         "round": { ".validate": "newData.isNumber()" },
         "createdAt": { ".validate": "newData.isNumber()" },
         "moveCount": {
-          ".write": "auth != null && auth.uid === data.parent().child('guest').val()",
-          ".validate": "newData.isNumber() && ((data.exists() && newData.val() === data.val() + 1 && newData.parent().child('moves').child('' + data.val()).exists()) || (newData.val() === 0 && auth.uid === newData.parent().child('host').val()))"
+          ".write": "auth != null && (auth.uid === data.parent().child('host').val() || auth.uid === data.parent().child('guest').val())",
+          ".validate": "newData.isNumber() && ((data.exists() && newData.parent().child('round').val() === data.parent().child('round').val()) ? (newData.val() === data.val() + 1 && newData.parent().child('moves').child('' + data.val()).exists()) : newData.val() === 0)"
         },
         "moves": {
           "$i": {
-            ".write": "auth != null && auth.uid === data.parent().parent().child('guest').val()",
-            ".validate": "!data.exists() && newData.hasChildren(['r', 'c']) && newData.parent().parent().child('guest').exists() && $i === '' + data.parent().parent().child('moveCount').val() && auth.uid === (((data.parent().parent().child('moveCount').val() % 2 === 0) === (data.parent().parent().child('hostColor').val() === 'one')) ? data.parent().parent().child('host').val() : data.parent().parent().child('guest').val())",
+            ".write": "auth != null && (auth.uid === data.parent().parent().child('host').val() || auth.uid === data.parent().parent().child('guest').val())",
+            ".validate": "!data.exists() && newData.hasChildren(['r', 'c']) && newData.parent().parent().child('guest').exists() && $i === '' + data.parent().parent().child('moveCount').val() && newData.parent().parent().child('moveCount').val() === data.parent().parent().child('moveCount').val() + 1 && auth.uid === (((data.parent().parent().child('moveCount').val() % 2 === 0) === (data.parent().parent().child('hostColor').val() === 'one')) ? data.parent().parent().child('host').val() : data.parent().parent().child('guest').val())",
             "r": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 19" },
             "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 19" },
             "$other": { ".validate": false }
@@ -35,13 +35,13 @@
         },
         "rematch": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && auth.uid === data.parent().parent().child('guest').val()",
+            ".write": "auth != null && auth.uid === $uid && (auth.uid === data.parent().parent().child('host').val() || auth.uid === data.parent().parent().child('guest').val())",
             ".validate": "newData.isNumber()"
           }
         },
         "left": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && auth.uid === data.parent().parent().child('guest').val()",
+            ".write": "auth != null && auth.uid === $uid && (auth.uid === data.parent().parent().child('host').val() || auth.uid === data.parent().parent().child('guest').val())",
             ".validate": "newData.isBoolean()"
           }
         },

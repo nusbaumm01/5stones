@@ -147,8 +147,67 @@ void main() {
     // Nobody can list every game.
     await expectLater(carol.db.get('games'), denied);
 
+    // The host can't rewrite the game either: swap colors to take Bob's
+    // turn, wipe the board, speak for Bob, or delete the game.
+    await expectLater(
+      alice.db.patch('games/$code', {'hostColor': 'one'}),
+      denied,
+    );
+    await expectLater(
+      alice.db.patch('games/$code', {'moves': null, 'moveCount': 0}),
+      denied,
+    );
+    await expectLater(alice.db.put('games/$code/moveCount', 0), denied);
+    await expectLater(
+      alice.db.put('games/$code/rematch/${bob.auth.uid}', 0),
+      denied,
+    );
+    await expectLater(
+      alice.db.put('games/$code/left/${bob.auth.uid}', true),
+      denied,
+    );
+    await expectLater(alice.db.put('games/$code', null), denied);
+    // A new round needs both players to ask for it first.
+    await expectLater(
+      alice.db.put('games/$code', {
+        'host': alice.auth.uid,
+        'guest': bob.auth.uid,
+        'hostColor': 'one',
+        'tournament': false,
+        'round': 1,
+        'moveCount': 0,
+        'createdAt': 0,
+      }),
+      denied,
+    );
+
     final s = OnlineGameState.tryParse(await carol.db.get('games/$code'))!;
     expect(s.moves, const [Point(9, 9), Point(9, 10)]);
+  }, skip: emulator ? false : 'Firebase emulator not running');
+
+  test('a move the rules do not allow stops the game with a message', () async {
+    final alice = player();
+    final bob = player();
+    final code = await alice.createGame(
+      hostPlaysFirst: true,
+      tournament: false,
+    );
+    await bob.joinGame(code);
+    final a = alice.open(code);
+    await until(() => a.status == OnlineStatus.playing, what: 'playing');
+    expect(a.tap(const Point(9, 9)), isTrue);
+    await until(() => !a.sending, what: 'move sent');
+
+    // A changed app plays on the occupied center point. The server can't
+    // check that, so the honest player's app has to.
+    await bob.db.patch('games/$code', {
+      'moves/1': {'r': 9, 'c': 9},
+      'moveCount': 2,
+    });
+    await until(() => a.status == OnlineStatus.error, what: 'out of sync');
+    expect(a.error, OnlineGameController.outOfSyncMessage);
+    expect(a.canMove, isFalse);
+    a.dispose();
   }, skip: emulator ? false : 'Firebase emulator not running');
 
   test('joining a code that does not exist', () async {

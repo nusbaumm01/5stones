@@ -199,6 +199,10 @@ class OnlineGameController extends ChangeNotifier {
     _start();
   }
 
+  static const outOfSyncMessage =
+      "This game can't continue: a move came in that the rules don't allow. "
+      'Start a new game.';
+
   final OnlineService service;
   final String code;
   final OnMove? onMove;
@@ -210,8 +214,17 @@ class OnlineGameController extends ChangeNotifier {
   bool _sending = false;
   bool _disposed = false;
   String? _uid;
-  String? error;
   bool _resetting = false;
+
+  /// A problem that ends the game for this player, such as the game being
+  /// gone or holding a move the rules don't allow.
+  String? _fatal;
+
+  /// The live connection was refused. Cleared when data arrives again.
+  String? _connection;
+
+  /// Why the game can't be shown right now, or null if all is well.
+  String? get error => _fatal ?? _connection;
 
   OnlineGameState? get state => _state;
   PenteGame get game => _game;
@@ -254,7 +267,7 @@ class OnlineGameController extends ChangeNotifier {
     try {
       _uid = await service.auth.signIn();
     } catch (e) {
-      error = 'Could not connect. Check your internet connection.';
+      _fatal = 'Could not connect. Check your internet connection.';
       _changed();
       return;
     }
@@ -266,7 +279,7 @@ class OnlineGameController extends ChangeNotifier {
         .listen(
           _onData,
           onError: (Object e) {
-            error = 'Lost access to this game.';
+            _connection = 'Lost access to this game.';
             _changed();
           },
         );
@@ -275,10 +288,11 @@ class OnlineGameController extends ChangeNotifier {
   void _onData(Object? value) {
     final s = OnlineGameState.tryParse(value);
     if (s == null) {
-      error = 'This game no longer exists.';
+      _fatal = 'This game no longer exists.';
       _changed();
       return;
     }
+    _connection = null;
     _state = s;
     _syncGame(s);
     _maybeStartRematch(s);
@@ -294,8 +308,14 @@ class OnlineGameController extends ChangeNotifier {
       _game = PenteGame(tournamentRule: s.tournament);
     }
     final before = _game.moveCount;
+    if (fresh && _fatal == outOfSyncMessage) _fatal = null;
     for (final p in moves.skip(_game.moveCount)) {
-      if (!_game.isLegal(p)) break;
+      if (!_game.isLegal(p)) {
+        // Only a changed copy of the app could send this. Say so instead
+        // of waiting forever for a move that can never arrive.
+        _fatal = outOfSyncMessage;
+        break;
+      }
       _game.play(p);
     }
     // Sound for moves that just arrived (not for catching up on a whole game).
